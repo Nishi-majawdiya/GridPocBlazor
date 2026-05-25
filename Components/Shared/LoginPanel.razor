@@ -1,0 +1,82 @@
+@using GridPocBlazor.Models
+@using GridPocBlazor.Services
+@using MudBlazor
+
+<MudPaper Class="pa-4 h-100" Outlined="true" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-3">Login</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        If you already registered, login first to open the dashboard.
+    </MudText>
+
+    <MudForm @ref="_form" @bind-IsValid="_isValid">
+    <MudGrid Spacing="2">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value:get="_model.Email"
+                          @bind-Value:set="SetEmail"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Email"
+                          Validation="@((Func<string, string?>)ValidateEmail)"
+                          Immediate="true"
+                          FullWidth="true" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="_model.Password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Validation="@((Func<string, string?>)ValidatePassword)"
+                          Immediate="true"
+                          FullWidth="true" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       StartIcon="@Icons.Material.Filled.Login"
+                       OnClick="SubmitAsync">
+                Login
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public EventCallback<LoginRequest> OnLogin { get; set; }
+
+    private MudForm _form = default!;
+    private bool _isValid;
+    private LoginRequest _model = new();
+
+    private async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_isValid)
+        {
+            return;
+        }
+
+        await OnLogin.InvokeAsync(new LoginRequest
+        {
+            Email = _model.Email,
+            Password = _model.Password
+        });
+
+        _model = new LoginRequest
+        {
+            Email = _model.Email
+        };
+    }
+
+    private void SetEmail(string value)
+    {
+        _model.Email = UserInputRules.NormalizeEmail(value);
+    }
+
+    private static string? ValidateEmail(string value) => UserInputRules.ValidateEmail(value);
+
+    private static string? ValidatePassword(string value) => UserInputRules.ValidatePassword(value, true);
+}

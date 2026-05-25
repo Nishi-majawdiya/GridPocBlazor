@@ -1,0 +1,25 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4 h-100" Outlined="true" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-3">Register New User</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        If you are not registered yet, register first. After that, login to open the dashboard.
+    </MudText>
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="OpenRegisterAsync">
+        Register User
+    </MudButton>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public EventCallback OnRegister { get; set; }
+
+    private Task OpenRegisterAsync()
+    {
+        return OnRegister.InvokeAsync();
+    }
+}

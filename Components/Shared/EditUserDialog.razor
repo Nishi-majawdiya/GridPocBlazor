@@ -1,0 +1,407 @@
+@using GridPocBlazor.Models
+@using GridPocBlazor.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+
+<MudDialog Class="edit-user-dialog">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                <MudIcon Icon="@Icons.Material.Filled.Edit" />
+            </MudAvatar>
+            <MudText Typo="Typo.h6">@(IsNew ? "Add User" : "Edit User")</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (!string.IsNullOrWhiteSpace(_previewImageUrl))
+                        {
+                            <MudAvatar Size="Size.Large">
+                                <MudImage Src="@_previewImageUrl" Alt="@_model.FullName" />
+                            </MudAvatar>
+                        }
+                        else
+                        {
+                            <MudAvatar Size="Size.Large" Color="Color.Primary">
+                                @GetInitials(_model)
+                            </MudAvatar>
+                        }
+
+                        <div>
+                            <MudText Typo="Typo.subtitle2">Profile Photo</MudText>
+                            <InputFile OnChange="HandleFileSelectedAsync"
+                                       accept=".jpg,.jpeg,.png,.webp" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                JPG, PNG, or WEBP up to 2 MB
+                            </MudText>
+                            @if (!string.IsNullOrWhiteSpace(_selectedFileName))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Primary">
+                                    Selected: @_selectedFileName
+                                </MudText>
+                            }
+                            <MudStack Row="true" Spacing="1" Class="mt-2">
+                                @if (!string.IsNullOrWhiteSpace(_model.ProfileImageUrl) || _selectedFile is not null)
+                                {
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               OnClick="RemoveProfilePhoto">
+                                        Remove Photo
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </div>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value:get="_model.FirstName"
+                                  @bind-Value:set="SetFirstName"
+                                  Label="First Name"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="First name is required"
+                                  Validation="@((Func<string, string?>)ValidateFirstName)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value:get="_model.LastName"
+                                  @bind-Value:set="SetLastName"
+                                  Label="Last Name"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Last name is required"
+                                  Validation="@((Func<string, string?>)ValidateLastName)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value:get="_model.Email"
+                                  @bind-Value:set="SetEmail"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  Required="true"
+                                  RequiredError="Email is required"
+                                  Validation="@((Func<string, string?>)ValidateEmail)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value:get="_model.Phone"
+                                  @bind-Value:set="SetPhone"
+                                  Label="Phone"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Phone is required"
+                                  Validation="@((Func<string, string?>)ValidatePhone)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="@IsNew"
+                                  RequiredError="Password is required for new users"
+                                  HelperText="Leave blank during edit to keep the current password."
+                                  Validation="@((Func<string, string?>)ValidatePassword)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.ConfirmPassword"
+                                  Label="Confirm Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="@IsNew"
+                                  RequiredError="Please confirm the password"
+                                  Validation="@((Func<string, string?>)ValidateConfirmPassword)"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_model.Gender" Label="Gender" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Male")">Male</MudSelectItem>
+                        <MudSelectItem Value="@("Female")">Female</MudSelectItem>
+                        <MudSelectItem Value="@("Other")">Other</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_createdDate"
+                                   Label="Created Date"
+                                   Variant="Variant.Outlined"
+                                   DateFormat="dd MMM yyyy" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Address"
+                                  Label="Address"
+                                  Variant="Variant.Outlined"
+                                  Lines="2" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value:get="_model.City"
+                                  @bind-Value:set="SetCity"
+                                  Label="City"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value:get="_model.State"
+                                  @bind-Value:set="SetState"
+                                  Label="State"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value:get="_model.Country"
+                                  @bind-Value:set="SetCountry"
+                                  Label="Country"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value:get="_model.ZipCode"
+                                  @bind-Value:set="SetZipCode"
+                                  Label="Zip Code"
+                                  Variant="Variant.Outlined"
+                                  Validation="@((Func<string, string?>)ValidateZipCode)"
+                                  Immediate="true" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync">
+            @(IsNew ? "Add" : "Save Changes")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long MaxFileSize = 2 * 1024 * 1024;
+    private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject]
+    private IWebHostEnvironment Environment { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    [Parameter]
+    public User User { get; set; } = new();
+
+    [Parameter]
+    public bool IsNew { get; set; }
+
+    private MudForm _form = default!;
+    private bool _isValid;
+    private User _model = new();
+    private DateTime? _createdDate;
+    private IBrowserFile? _selectedFile;
+    private string _selectedFileName = string.Empty;
+    private string _previewImageUrl = string.Empty;
+    private string _originalProfileImageUrl = string.Empty;
+    private bool _removeProfilePhoto;
+
+    protected override void OnInitialized()
+    {
+        _model = new User
+        {
+            Id = User.Id,
+            FirstName = User.FirstName,
+            LastName = User.LastName,
+            ProfileImageUrl = User.ProfileImageUrl,
+            Email = User.Email,
+            Phone = User.Phone,
+            Gender = User.Gender,
+            Address = User.Address,
+            City = User.City,
+            State = User.State,
+            Country = User.Country,
+            ZipCode = User.ZipCode,
+            CreatedDate = User.CreatedDate,
+            Password = string.Empty,
+            ConfirmPassword = string.Empty
+        };
+        _createdDate = User.CreatedDate;
+        _previewImageUrl = User.ProfileImageUrl;
+        _originalProfileImageUrl = User.ProfileImageUrl;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        var extension = Path.GetExtension(file.Name);
+        if (string.IsNullOrWhiteSpace(extension) ||
+            !AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            _selectedFile = null;
+            _selectedFileName = string.Empty;
+            Snackbar.Add("Please choose a JPG, PNG, or WEBP image.", Severity.Warning);
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            _selectedFile = null;
+            _selectedFileName = string.Empty;
+            Snackbar.Add("Image size must be 2 MB or smaller.", Severity.Warning);
+            return;
+        }
+
+        _selectedFile = file;
+        _selectedFileName = file.Name;
+        _removeProfilePhoto = false;
+        _previewImageUrl = await BuildPreviewAsync(file);
+    }
+
+    private void RemoveProfilePhoto()
+    {
+        _selectedFile = null;
+        _selectedFileName = string.Empty;
+        _previewImageUrl = string.Empty;
+        _model.ProfileImageUrl = string.Empty;
+        _removeProfilePhoto = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_isValid)
+        {
+            return;
+        }
+
+        NormalizeModel();
+
+        var validationMessage = UserInputRules.ValidateUser(_model, IsNew);
+        if (!string.IsNullOrWhiteSpace(validationMessage))
+        {
+            Snackbar.Add(validationMessage, Severity.Warning);
+            return;
+        }
+
+        _model.CreatedDate = _createdDate ?? DateTime.Today;
+        if (_selectedFile is not null)
+        {
+            DeleteProfileImageIfExists(_originalProfileImageUrl);
+            _model.ProfileImageUrl = await SaveProfileImageAsync(_selectedFile);
+        }
+        else if (_removeProfilePhoto)
+        {
+            DeleteProfileImageIfExists(_originalProfileImageUrl);
+            _model.ProfileImageUrl = string.Empty;
+        }
+
+        MudDialog.Close(DialogResult.Ok(_model));
+    }
+
+    private async Task<string> SaveProfileImageAsync(IBrowserFile file)
+    {
+        var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads", "profiles");
+        Directory.CreateDirectory(uploadsFolder);
+
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        var fileName = $"user-{_model.Id}-{Guid.NewGuid():N}{extension}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        await using var readStream = file.OpenReadStream(MaxFileSize);
+        await using var writeStream = File.Create(filePath);
+        await readStream.CopyToAsync(writeStream);
+
+        return $"/uploads/profiles/{fileName}";
+    }
+
+    private void DeleteProfileImageIfExists(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl) ||
+            !imageUrl.StartsWith("/uploads/profiles/", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var relativePath = imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var filePath = Path.Combine(Environment.WebRootPath, relativePath);
+
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    private static async Task<string> BuildPreviewAsync(IBrowserFile file)
+    {
+        await using var stream = file.OpenReadStream(MaxFileSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+
+        var base64 = Convert.ToBase64String(memoryStream.ToArray());
+        return $"data:{file.ContentType};base64,{base64}";
+    }
+
+    private static string GetInitials(User user)
+    {
+        var first = string.IsNullOrWhiteSpace(user.FirstName) ? "?" : user.FirstName[0].ToString();
+        var last = string.IsNullOrWhiteSpace(user.LastName) ? string.Empty : user.LastName[0].ToString();
+        return $"{first}{last}".ToUpperInvariant();
+    }
+
+    private void NormalizeModel()
+    {
+        _model.FirstName = UserInputRules.LettersAndSeparatorsOnly(_model.FirstName);
+        _model.LastName = UserInputRules.LettersAndSeparatorsOnly(_model.LastName);
+        _model.Email = UserInputRules.NormalizeEmail(_model.Email);
+        _model.Phone = UserInputRules.DigitsOnly(_model.Phone, 15);
+        _model.City = UserInputRules.LettersAndSeparatorsOnly(_model.City);
+        _model.State = UserInputRules.LettersAndSeparatorsOnly(_model.State);
+        _model.Country = UserInputRules.LettersAndSeparatorsOnly(_model.Country);
+        _model.ZipCode = UserInputRules.DigitsOnly(_model.ZipCode, 10);
+        _model.Address = UserInputRules.TrimText(_model.Address, 300);
+        _model.Password = _model.Password.Trim();
+        _model.ConfirmPassword = _model.ConfirmPassword.Trim();
+    }
+
+    private void SetFirstName(string value) => _model.FirstName = UserInputRules.LettersAndSeparatorsOnly(value);
+
+    private void SetLastName(string value) => _model.LastName = UserInputRules.LettersAndSeparatorsOnly(value);
+
+    private void SetEmail(string value) => _model.Email = UserInputRules.NormalizeEmail(value);
+
+    private void SetPhone(string value) => _model.Phone = UserInputRules.DigitsOnly(value, 15);
+
+    private void SetCity(string value) => _model.City = UserInputRules.LettersAndSeparatorsOnly(value);
+
+    private void SetState(string value) => _model.State = UserInputRules.LettersAndSeparatorsOnly(value);
+
+    private void SetCountry(string value) => _model.Country = UserInputRules.LettersAndSeparatorsOnly(value);
+
+    private void SetZipCode(string value) => _model.ZipCode = UserInputRules.DigitsOnly(value, 10);
+
+    private static string? ValidateEmail(string value) => UserInputRules.ValidateEmail(value);
+
+    private static string? ValidatePhone(string value) => UserInputRules.ValidatePhone(value);
+
+    private static string? ValidateFirstName(string value) => UserInputRules.ValidateName(value, "First name");
+
+    private static string? ValidateLastName(string value) => UserInputRules.ValidateName(value, "Last name");
+
+    private string? ValidatePassword(string value) => UserInputRules.ValidatePassword(value, IsNew);
+
+    private string? ValidateConfirmPassword(string value) => UserInputRules.ValidateConfirmPassword(_model.Password, value, IsNew);
+
+    private static string? ValidateZipCode(string value) => UserInputRules.ValidateZipCode(value);
+}

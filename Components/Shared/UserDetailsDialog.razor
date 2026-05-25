@@ -1,0 +1,126 @@
+@using GridPocBlazor.Models
+@using MudBlazor
+
+<MudDialog Class="user-details-dialog">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            @if (!string.IsNullOrWhiteSpace(User?.ProfileImageUrl))
+            {
+                <MudAvatar Variant="Variant.Filled" Size="Size.Medium">
+                    <MudImage Src="@User.ProfileImageUrl" Alt="@User.FullName" />
+                </MudAvatar>
+            }
+            else
+            {
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                    @GetInitials()
+                </MudAvatar>
+            }
+            <div>
+                <MudText Typo="Typo.h6" Class="mb-0">@User?.FullName</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@User?.Email</MudText>
+            </div>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        @if (User is not null)
+        {
+            <MudPaper Class="details-hero pa-4 mb-4" Elevation="0">
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                        ID @User.Id
+                    </MudChip>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Secondary" Variant="Variant.Outlined" Size="Size.Small">
+                        @User.Gender
+                    </MudChip>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.LocationOn" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                        @User.City, @User.Country
+                    </MudChip>
+                </MudStack>
+            </MudPaper>
+
+            <MudGrid Spacing="2">
+                @foreach (var field in GetDetailFields())
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudPaper Class="detail-field pa-3" Elevation="0" Outlined="true">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="detail-label">@field.Label</MudText>
+                            <MudText Typo="Typo.body1" Class="detail-value">@field.Value</MudText>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning">User details not available.</MudAlert>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">Close</MudButton>
+        <MudSpacer />
+        @if (User is not null)
+        {
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="RequestDelete">
+                Delete
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="RequestEdit">
+                Edit
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public User? User { get; set; }
+
+    private void Close() => MudDialog.Close();
+
+    private void RequestEdit() => MudDialog.Close(DialogResult.Ok("edit"));
+
+    private void RequestDelete() => MudDialog.Close(DialogResult.Ok("delete"));
+
+    private string GetInitials()
+    {
+        if (User is null)
+        {
+            return "?";
+        }
+
+        var first = string.IsNullOrWhiteSpace(User.FirstName) ? "?" : User.FirstName[0].ToString();
+        var last = string.IsNullOrWhiteSpace(User.LastName) ? "" : User.LastName[0].ToString();
+        return $"{first}{last}".ToUpperInvariant();
+    }
+
+    private IEnumerable<(string Label, string Value)> GetDetailFields()
+    {
+        if (User is null)
+        {
+            yield break;
+        }
+
+        yield return ("Full Name", User.FullName);
+        yield return ("Email", User.Email);
+        yield return ("Phone", User.Phone);
+        yield return ("Address", User.Address);
+        yield return ("City", User.City);
+        yield return ("State", User.State);
+        yield return ("Country", User.Country);
+        yield return ("Zip Code", User.ZipCode);
+        yield return ("Created Date", User.CreatedDate.ToString("dd MMMM yyyy"));
+        yield return ("Login Status", User.IsLoggedIn ? "Logged In" : "Logged Out");
+        yield return ("Last Login", User.LastLoginDate?.ToString("dd MMMM yyyy hh:mm tt") ?? "Never");
+    }
+}

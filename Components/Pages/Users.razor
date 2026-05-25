@@ -1,0 +1,573 @@
+@page "/users"
+
+@using GridPocBlazor.Components.Shared
+@using GridPocBlazor.Models
+@using GridPocBlazor.Services
+@using MudBlazor
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject UserRepository UserRepository
+@inject UserSessionService UserSession
+
+<div class="users-page">
+    @if (UserSession.CurrentUser is null)
+    {
+        <MudPaper Class="users-hero pa-6 mb-4" Elevation="0">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudAvatar Class="hero-avatar" Size="Size.Large">
+                            <MudIcon Icon="@Icons.Material.Filled.LockPerson" Size="Size.Large" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.h4" Class="hero-title mb-1">Login Or Register First</MudText>
+                            <MudText Typo="Typo.body2" Class="hero-subtitle">
+                                First register if you are new, then login. Dashboard will open only after successful login.
+                            </MudText>
+                        </div>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@loadError</MudAlert>
+        }
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <LoginPanel OnLogin="HandleLoginAsync" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <RegisterPanel OnRegister="OpenAddDialogAsync" />
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+        <MudPaper Class="users-hero pa-6 mb-4" Elevation="0">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="8">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudAvatar Class="hero-avatar" Size="Size.Large">
+                            <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.h4" Class="hero-title mb-1">Users Dashboard</MudText>
+                            <MudText Typo="Typo.body2" Class="hero-subtitle">
+                                Logged in as @UserSession.CurrentUser.FullName. Dashboard shows all other registered users.
+                            </MudText>
+                        </div>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex justify-md-end">
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.Logout"
+                                   OnClick="LogoutAsync">
+                            Logout
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Class="add-user-btn"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   OnClick="OpenAddDialogAsync">
+                            Add User
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@loadError</MudAlert>
+        }
+
+        <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="stat-card pa-4" Elevation="0">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.caption" Class="stat-label">Total Users</MudText>
+                        <MudText Typo="Typo.h4" Class="stat-value">@users.Count</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" Class="stat-icon stat-icon-primary" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="stat-card pa-4" Elevation="0">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.caption" Class="stat-label">Filtered Results</MudText>
+                        <MudText Typo="Typo.h4" Class="stat-value">@filteredUsers.Count</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Class="stat-icon stat-icon-info" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="stat-card pa-4" Elevation="0">
+                <MudTextField T="string"
+                              @bind-Value="searchText"
+                              @bind-Value:after="ApplySearchFilter"
+                              Immediate="false"
+                              DebounceInterval="300"
+                              Placeholder="Search name, email, phone..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Clearable="true"
+                              FullWidth="true"
+                              Class="search-field" />
+            </MudPaper>
+        </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="users-table-card pa-2" Elevation="0">
+            <MudTable T="User"
+                      @key="searchText"
+                      Items="filteredUsers"
+                      Hover="true"
+                      Striped="true"
+                      Dense="true"
+                      Elevation="0"
+                      Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10"
+                      Class="users-table">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6" Class="table-title">User List</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.DeleteSweep"
+                               Disabled="@(!users.Any(x => x.IsSelected))"
+                               OnClick="DeleteSelectedAsync">
+                        Delete Selected
+                    </MudButton>
+                    <MudChip T="string"
+                             Class="records-chip"
+                             Variant="Variant.Filled"
+                             Icon="@Icons.Material.Filled.TableRows">
+                        @($"{filteredUsers.Count} records")
+                    </MudChip>
+                </ToolBarContent>
+
+                <HeaderContent>
+                    <MudTh>
+                        <MudCheckBox T="bool"
+                                     Value="@SelectAllUsers"
+                                     ValueChanged="@ToggleSelectAll" />
+                    </MudTh>
+                    <MudTh>Id</MudTh>
+                    <MudTh>User</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>City</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd>
+                        <MudCheckBox T="bool"
+                                     @bind-Value="context.IsSelected" />
+                    </MudTd>
+                    <MudTd DataLabel="Id">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Variant="Variant.Outlined">
+                            #@context.Id
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="User">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (!string.IsNullOrWhiteSpace(context.ProfileImageUrl))
+                            {
+                                <MudAvatar Size="Size.Small" Class="user-avatar">
+                                    <MudImage Src="@context.ProfileImageUrl" Alt="@context.FullName" />
+                                </MudAvatar>
+                            }
+                            else
+                            {
+                                <MudAvatar Size="Size.Small" Color="Color.Primary" Class="user-avatar">
+                                    @GetInitials(context)
+                                </MudAvatar>
+                            }
+                            <MudLink Href="javascript:void(0);"
+                                     OnClick="@(() => OpenViewDialogAsync(context))"
+                                     Class="user-name-link"
+                                     Underline="Underline.Hover">
+                                @context.FullName
+                            </MudLink>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Email">@context.Email</MudTd>
+                    <MudTd DataLabel="Phone">@context.Phone</MudTd>
+                    <MudTd DataLabel="City">@context.City</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(context.IsLoggedIn ? Color.Success : Color.Default)"
+                                 Variant="Variant.Filled">
+                            @(context.IsLoggedIn ? "Logged In" : "Logged Out")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedDate.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align:center;">
+                        <MudStack Row="true" Justify="Justify.Center" Spacing="0" Class="action-buttons">
+                            <MudTooltip Text="View details">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => OpenViewDialogAsync(context))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Edit user">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => OpenEditDialogAsync(context))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Delete user">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => ConfirmDeleteAsync(context))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <MudStack AlignItems="AlignItems.Center" Class="py-8 empty-state">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6">No data found</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            There are no other registered users to show right now.
+                        </MudText>
+                    </MudStack>
+                </NoRecordsContent>
+
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 25 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    private readonly List<User> users = new();
+
+    private string searchText = string.Empty;
+    private string loadError = string.Empty;
+    private List<User> filteredUsers = new();
+    private bool SelectAllUsers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserSession.CurrentUser is not null)
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    private void ApplySearchFilter()
+    {
+        var term = searchText.Trim();
+        filteredUsers = string.IsNullOrWhiteSpace(term)
+            ? users.ToList()
+            : users.Where(user =>
+                user.FullName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                user.Email.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                user.Phone.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            loadError = string.Empty;
+            var dbUsers = await UserRepository.GetUsersAsync();
+            var currentUserId = UserSession.CurrentUser?.Id;
+
+            users.Clear();
+            users.AddRange(currentUserId.HasValue
+                ? dbUsers.Where(user => user.Id != currentUserId.Value)
+                : dbUsers);
+
+            SelectAllUsers = false;
+            ApplySearchFilter();
+        }
+        catch (Exception ex)
+        {
+            loadError = $"SQL connection failed: {ex.Message}";
+            users.Clear();
+            filteredUsers = new List<User>();
+        }
+    }
+
+    private static string GetInitials(User user)
+    {
+        var first = string.IsNullOrWhiteSpace(user.FirstName) ? "?" : user.FirstName[0].ToString();
+        var last = string.IsNullOrWhiteSpace(user.LastName) ? string.Empty : user.LastName[0].ToString();
+        return $"{first}{last}".ToUpperInvariant();
+    }
+
+    private async Task OpenViewDialogAsync(User user)
+    {
+        var parameters = new DialogParameters<UserDetailsDialog>
+        {
+            { x => x.User, user }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDetailsDialog>(null, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not string action)
+        {
+            return;
+        }
+
+        if (action == "edit")
+        {
+            await OpenEditDialogAsync(user);
+        }
+        else if (action == "delete")
+        {
+            await ConfirmDeleteAsync(user);
+        }
+    }
+
+    private async Task OpenEditDialogAsync(User user)
+    {
+        var parameters = new DialogParameters<EditUserDialog>
+        {
+            { x => x.User, user },
+            { x => x.IsNew, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditUserDialog>(null, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not User updated)
+        {
+            return;
+        }
+
+        try
+        {
+            await UserRepository.UpdateUserAsync(updated);
+            await LoadUsersAsync();
+
+            if (UserSession.CurrentUser?.Id == updated.Id)
+            {
+                var refreshedCurrentUser = users.FirstOrDefault(u => u.Id == updated.Id);
+                if (refreshedCurrentUser is not null)
+                {
+                    UserSession.Login(refreshedCurrentUser);
+                }
+            }
+
+            Snackbar.Add($"Updated {updated.FullName} successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OpenAddDialogAsync()
+    {
+        var newUser = new User
+        {
+            CreatedDate = DateTime.Today,
+            Gender = "Male"
+        };
+
+        var parameters = new DialogParameters<EditUserDialog>
+        {
+            { x => x.User, newUser },
+            { x => x.IsNew, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditUserDialog>(null, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not User created)
+        {
+            return;
+        }
+
+        try
+        {
+            await UserRepository.CreateUserAsync(created);
+            await LoadUsersAsync();
+            Snackbar.Add($"Registered {created.FullName} successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ConfirmDeleteAsync(User user)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete User",
+            (MarkupString)$"Are you sure you want to delete <b>{user.FullName}</b>? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await UserRepository.DeleteUserAsync(user.Id);
+
+            if (UserSession.CurrentUser?.Id == user.Id)
+            {
+                UserSession.Logout();
+            }
+
+            await LoadUsersAsync();
+            Snackbar.Add($"Deleted {user.FullName}.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void ToggleSelectAll(bool value)
+    {
+        SelectAllUsers = value;
+
+        foreach (var user in filteredUsers)
+        {
+            user.IsSelected = value;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteSelectedAsync()
+    {
+        var selectedUsers = users
+            .Where(x => x.IsSelected)
+            .ToList();
+
+        if (!selectedUsers.Any())
+        {
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Users",
+            $"Delete {selectedUsers.Count} selected users?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await UserRepository.DeleteUsersAsync(selectedUsers.Select(x => x.Id));
+
+            if (UserSession.CurrentUser is not null && selectedUsers.Any(x => x.Id == UserSession.CurrentUser.Id))
+            {
+                UserSession.Logout();
+            }
+
+            await LoadUsersAsync();
+            Snackbar.Add($"{selectedUsers.Count} users deleted successfully.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task HandleLoginAsync(LoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            Snackbar.Add("Enter email and password to login.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var user = await UserRepository.AuthenticateAsync(request.Email.Trim(), request.Password);
+            if (user is null)
+            {
+                Snackbar.Add("Invalid login. If you are a new user, register first and then login.", Severity.Error);
+                return;
+            }
+
+            UserSession.Login(user);
+            await LoadUsersAsync();
+            Snackbar.Add($"Welcome back, {user.FullName}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (UserSession.CurrentUser is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await UserRepository.SetLoginStatusAsync(UserSession.CurrentUser.Id, false);
+            var name = UserSession.CurrentUser.FullName;
+            UserSession.Logout();
+            users.Clear();
+            filteredUsers = new List<User>();
+            searchText = string.Empty;
+            Snackbar.Add($"{name} logged out successfully.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
