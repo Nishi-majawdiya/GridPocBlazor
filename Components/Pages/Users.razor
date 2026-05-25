@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject UserRepository UserRepository
 @inject UserSessionService UserSession
+@inject IWebHostEnvironment Environment
 
 <div class="users-page">
     @if (UserSession.CurrentUser is null)
@@ -342,9 +343,13 @@
             return;
         }
 
-        if (action == "edit")
+        if (action == "edit" || action == "edit-photo")
         {
             await OpenEditDialogAsync(user);
+        }
+        else if (action == "remove-photo")
+        {
+            await RemoveProfilePhotoAsync(user);
         }
         else if (action == "delete")
         {
@@ -469,6 +474,42 @@
         }
     }
 
+    private async Task RemoveProfilePhotoAsync(User user)
+    {
+        if (string.IsNullOrWhiteSpace(user.ProfileImageUrl))
+        {
+            Snackbar.Add("No profile photo found for this user.", Severity.Info);
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Profile Photo",
+            (MarkupString)$"Remove profile photo for <b>{user.FullName}</b>?",
+            yesText: "Remove",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            DeleteProfileImageIfExists(user.ProfileImageUrl);
+
+            var updatedUser = CloneUser(user);
+            updatedUser.ProfileImageUrl = string.Empty;
+
+            await UserRepository.UpdateUserAsync(updatedUser);
+            await LoadUsersAsync();
+            Snackbar.Add($"Removed profile photo for {user.FullName}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
     private void ToggleSelectAll(bool value)
     {
         SelectAllUsers = value;
@@ -568,6 +609,50 @@
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private User CloneUser(User user)
+    {
+        return new User
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            ProfileImageUrl = user.ProfileImageUrl,
+            Email = user.Email,
+            Phone = user.Phone,
+            Gender = user.Gender,
+            Address = user.Address,
+            City = user.City,
+            State = user.State,
+            Country = user.Country,
+            ZipCode = user.ZipCode,
+            CreatedDate = user.CreatedDate,
+            LastLoginDate = user.LastLoginDate,
+            IsLoggedIn = user.IsLoggedIn,
+            PasswordHash = user.PasswordHash,
+            PasswordSalt = user.PasswordSalt,
+            Password = string.Empty,
+            ConfirmPassword = string.Empty,
+            IsSelected = user.IsSelected
+        };
+    }
+
+    private void DeleteProfileImageIfExists(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl) ||
+            !imageUrl.StartsWith("/uploads/profiles/", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var relativePath = imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var filePath = Path.Combine(Environment.WebRootPath, relativePath);
+
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
         }
     }
 }

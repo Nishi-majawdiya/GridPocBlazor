@@ -19,6 +19,28 @@
             <div>
                 <MudText Typo="Typo.h6" Class="mb-0">@User?.FullName</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">@User?.Email</MudText>
+                @if (User is not null)
+                {
+                    <MudStack Row="true" Spacing="1" Class="mt-2">
+                        <MudButton Variant="Variant.Outlined"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PhotoCamera"
+                                   OnClick="RequestEditPhoto">
+                            Update Photo
+                        </MudButton>
+                        @if (!string.IsNullOrWhiteSpace(User.ProfileImageUrl))
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.DeleteOutline"
+                                       OnClick="RequestRemovePhoto">
+                                Remove Photo
+                            </MudButton>
+                        }
+                    </MudStack>
+                }
             </div>
         </MudStack>
     </TitleContent>
@@ -92,6 +114,10 @@
 
     private void RequestDelete() => MudDialog.Close(DialogResult.Ok("delete"));
 
+    private void RequestEditPhoto() => MudDialog.Close(DialogResult.Ok("edit-photo"));
+
+    private void RequestRemovePhoto() => MudDialog.Close(DialogResult.Ok("remove-photo"));
+
     private string GetInitials()
     {
         if (User is null)
@@ -121,6 +147,5 @@
         yield return ("Zip Code", User.ZipCode);
         yield return ("Created Date", User.CreatedDate.ToString("dd MMMM yyyy"));
         yield return ("Login Status", User.IsLoggedIn ? "Logged In" : "Logged Out");
-        yield return ("Last Login", User.LastLoginDate?.ToString("dd MMMM yyyy hh:mm tt") ?? "Never");
     }
 }
