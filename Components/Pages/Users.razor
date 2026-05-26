@@ -170,7 +170,7 @@
                     <MudTh>Phone</MudTh>
                     <MudTh>City</MudTh>
                     <MudTh>Status</MudTh>
-                    <MudTh>Created</MudTh>
+                    <MudTh>DOB</MudTh>
                     <MudTh>Actions</MudTh>
                 </HeaderContent>
 
@@ -219,7 +219,7 @@
                             @(context.IsLoggedIn ? "Logged In" : "Logged Out")
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Created">@context.CreatedDate.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd DataLabel="DOB">@context.DateOfBirth.ToString("dd MMM yyyy")</MudTd>
                     <MudTd DataLabel="Actions" Style="text-align:center;">
                         <MudStack Row="true" Justify="Justify.Center" Spacing="0" Class="action-buttons">
                             <MudTooltip Text="View details">
@@ -406,7 +406,7 @@
     {
         var newUser = new User
         {
-            CreatedDate = DateTime.Today,
+            DateOfBirth = DateTime.Today,
             Gender = "Male"
         };
 
@@ -462,7 +462,7 @@
 
             if (UserSession.CurrentUser?.Id == user.Id)
             {
-                UserSession.Logout();
+                UserSession.Logout();   
             }
 
             await LoadUsersAsync();
@@ -547,7 +547,7 @@
         try
         {
             await UserRepository.DeleteUsersAsync(selectedUsers.Select(x => x.Id));
-
+             
             if (UserSession.CurrentUser is not null && selectedUsers.Any(x => x.Id == UserSession.CurrentUser.Id))
             {
                 UserSession.Logout();
@@ -628,7 +628,7 @@
             State = user.State,
             Country = user.Country,
             ZipCode = user.ZipCode,
-            CreatedDate = user.CreatedDate,
+            DateOfBirth = user.DateOfBirth,
             LastLoginDate = user.LastLoginDate,
             IsLoggedIn = user.IsLoggedIn,
             PasswordHash = user.PasswordHash,

@@ -145,7 +145,7 @@
         yield return ("State", User.State);
         yield return ("Country", User.Country);
         yield return ("Zip Code", User.ZipCode);
-        yield return ("Created Date", User.CreatedDate.ToString("dd MMMM yyyy"));
+        yield return ("Date of Birth", User.DateOfBirth.ToString("dd MMMM yyyy"));
         yield return ("Login Status", User.IsLoggedIn ? "Logged In" : "Logged Out");
     }
 }

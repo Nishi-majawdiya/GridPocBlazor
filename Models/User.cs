@@ -2,6 +2,8 @@ namespace GridPocBlazor.Models;
 
 public class User
 {
+    private DateTime _dateOfBirth;
+
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -14,7 +16,18 @@ public class User
     public string State { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string ZipCode { get; set; } = string.Empty;
-    public DateTime CreatedDate { get; set; }
+    public DateTime DateOfBirth
+    {
+        get => _dateOfBirth;
+        set => _dateOfBirth = value;
+    }
+
+    public DateTime CreatedDate
+    {
+        get => _dateOfBirth;
+        set => _dateOfBirth = value;
+    }
+
     public DateTime? LastLoginDate { get; set; }
     public bool IsLoggedIn { get; set; }
     public string Password { get; set; } = string.Empty;

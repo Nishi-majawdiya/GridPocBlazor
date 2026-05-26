@@ -100,27 +100,29 @@
                                   Validation="@((Func<string, string?>)ValidatePhone)"
                                   Immediate="true" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.Password"
-                                  Label="Password"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Required="@IsNew"
-                                  RequiredError="Password is required for new users"
-                                  HelperText="Leave blank during edit to keep the current password."
-                                  Validation="@((Func<string, string?>)ValidatePassword)"
-                                  Immediate="true" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.ConfirmPassword"
-                                  Label="Confirm Password"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Required="@IsNew"
-                                  RequiredError="Please confirm the password"
-                                  Validation="@((Func<string, string?>)ValidateConfirmPassword)"
-                                  Immediate="true" />
-                </MudItem>
+                @if (IsNew)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.Password"
+                                      Label="Password"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Required="true"
+                                      RequiredError="Password is required for new users"
+                                      Validation="@((Func<string, string?>)ValidatePassword)"
+                                      Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.ConfirmPassword"
+                                      Label="Confirm Password"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Required="true"
+                                      RequiredError="Please confirm the password"
+                                      Validation="@((Func<string, string?>)ValidateConfirmPassword)"
+                                      Immediate="true" />
+                    </MudItem>
+                }
                 <MudItem xs="12" sm="6">
                     <MudSelect @bind-Value="_model.Gender" Label="Gender" Variant="Variant.Outlined">
                         <MudSelectItem Value="@("Male")">Male</MudSelectItem>
@@ -129,8 +131,8 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_createdDate"
-                                   Label="Created Date"
+                    <MudDatePicker @bind-Date="_dateOfBirth"
+                                   Label="DOB"
                                    Variant="Variant.Outlined"
                                    DateFormat="dd MMM yyyy" />
                 </MudItem>
@@ -203,7 +205,7 @@
     private MudForm _form = default!;
     private bool _isValid;
     private User _model = new();
-    private DateTime? _createdDate;
+    private DateTime? _dateOfBirth;
     private IBrowserFile? _selectedFile;
     private string _selectedFileName = string.Empty;
     private string _previewImageUrl = string.Empty;
@@ -226,11 +228,11 @@
             State = User.State,
             Country = User.Country,
             ZipCode = User.ZipCode,
-            CreatedDate = User.CreatedDate,
+            DateOfBirth = User.DateOfBirth,
             Password = string.Empty,
             ConfirmPassword = string.Empty
         };
-        _createdDate = User.CreatedDate;
+        _dateOfBirth = User.DateOfBirth == default ? DateTime.Today : User.DateOfBirth;
         _previewImageUrl = User.ProfileImageUrl;
         _originalProfileImageUrl = User.ProfileImageUrl;
     }
@@ -295,7 +297,7 @@
             return;
         }
 
-        _model.CreatedDate = _createdDate ?? DateTime.Today;
+        _model.DateOfBirth = _dateOfBirth ?? DateTime.Today;
         if (_selectedFile is not null)
         {
             DeleteProfileImageIfExists(_originalProfileImageUrl);
